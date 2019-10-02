@@ -14,6 +14,7 @@ class Song(models.Model):
 class Sentence(models.Model):
 
     content= models.TextField(blank=True, null=True)
+    emotion=models.IntegerField(blank=True,null=True)
 class Count(models.Model):
     id=models.IntegerField
 class User(models.Model):
@@ -66,7 +67,7 @@ class Event(models.Model):
     signature = models.TextField(blank=True, null=True)  # 签名
     nickName = models.TextField(blank=True, null=True)
 
-    json = models.TextField  # 这个里边是动态的内容需要解析
+    json = models.TextField(blank=True, null=True)  # 这个里边是动态的内容需要解析
     eventTime = models.DateTimeField(blank=True, null=True)
     insertDate = models.DateTimeField(blank=True, null=True)
     updateDate = models.DateTimeField(blank=True, null=True)

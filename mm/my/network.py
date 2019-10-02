@@ -2,6 +2,8 @@ from datetime import datetime
 import time
 import requests
 import random
+
+from ml.MainLIb import getMotion
 from  mm.my.util import  Util
 delay=2
 from mm.models import Comment, Event, User, Sentence, Count, List
@@ -97,7 +99,7 @@ def getLastEvent(userId):
     event.nickName = user.get("nickname")
     event.signature = user.get("signature")
 
-    event.json = lastEvent.get("json")
+    event.json = str(lastEvent.get("json"))
   #  event.eventTime = lastEvent.get("eventTime")
     event.insertDate = datetime.now()
     event.updateDate = datetime.now()
@@ -119,17 +121,43 @@ def forwardEvent(lastEvent=Event):
     json = r.json()
     time.sleep(delay)
     return
-sentenceList= list(Sentence.objects.all())
-sentenceLen=len(sentenceList)
+replyPositiveSentenceList= list(Sentence.objects.filter(emotion=1).all())
+replyNegetiveSentenceList= list(Sentence.objects.filter(emotion=-1).all())
+
 def commentEvent(lastEvent:Event):
-    sentence= sentenceList[random.randint(0, sentenceLen - 1)]
+    emotion=getMotion(lastEvent.json)
+    sentence = replyNegetiveSentenceList[random.randint(0, len(replyNegetiveSentenceList) - 1)]
+    if emotion==1:
+        sentence = replyPositiveSentenceList[random.randint(0, len(replyPositiveSentenceList) - 1)]
+
     content=sentence.content
     r = s.get(server + "comment?threadId=" + str(lastEvent.threadId) + "&content="+content+"&type=6&t=1")
     json = r.json()
     time.sleep(delay)
     return
-def getRandomSentence():
-    return     sentenceList[random.randint(0, sentenceLen - 1)].content
+
+def getAllFollower(userId):
+    r = s.get(server + "user/follows?limit=2000&uid=" + str(userId))
+    json = r.json()
+    time.sleep(delay)
+    userList = list()
+    for userJson in json.get("follow"):
+        accountStatus = userJson.get("accountStatus")
+        user = User()
+        user.id = userJson.get("userId")
+
+        user.nickName = userJson.get("nickname")
+        user.signature = userJson.get("signature")
+        user.looked = False
+        user.follows = userJson.get("follows")
+        user.followeds = userJson.get("followed")
+        user.eventCount = userJson.get("eventCount")
+        user.playlistCount = userJson.get("playlistCount")
+        user.vipType = userJson.get("vipType")
+
+        userList.append(user)
+    return userList
+
 # 返回 listOf User object
 def getFollower(userId):
     r = s.get(server+"user/follows?limit=2000&uid="+str(userId))

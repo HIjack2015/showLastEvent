@@ -1,3 +1,8 @@
+import random
+import time
+from threading import Thread
+
+from ml.MainLIb import getMotion
 from mm.models import *
 from mm.my import network
 
@@ -5,6 +10,9 @@ from mm.my import network
 
 
 #  暂时不要管这个方法了。songid先爬那2000个用户的听歌记录。或者喜欢的音乐
+from mm.my.network import replyNegetiveSentenceList, replyPositiveSentenceList
+
+
 def getMoreSongId():
     return
 def getMoreUserId():
@@ -67,7 +75,7 @@ def forwardComment(comment):
 songIdSet=set()
 listIdSet=set() #2814440999,977452696,976381514,882086412,2347480105,948471242,2422787988,743558697,2467948595
 userIdSet=set()
-findFollowerUserIdSet=set([1475878413,83515348,1517111971,1608933823,646308766,1834743877,1491924767,436526243])#[1829126194,1542670192,54853261][1834743877,303123343,1533763471,392811084,340232876] 1754923024,1325854795,1313272545,1460486774,109969117]
+findFollowerUserIdSet=list()
 network.loginByPhone('15102279873',"wyjk2015") # 总是要先登录
 
 
@@ -87,7 +95,12 @@ def addBySong(songId):
         if dbContainUser(userId):
             continue
         result = checkLastEventAndForwardThenComment(userId)
-        network.replyComment(songId,comment.id,network.getRandomSentence())
+        emotion = getMotion(comment.content)
+        sentence = replyNegetiveSentenceList[random.randint(0, len(replyNegetiveSentenceList) - 1)]
+        if emotion == 1:
+            sentence = replyPositiveSentenceList[random.randint(0, len(replyPositiveSentenceList) - 1)]
+
+        network.replyComment(songId,comment.id,sentence.content)
         comment.canceld=True
         comment.musicId=songId
         forwardComment(comment)
@@ -95,22 +108,23 @@ def addBySong(songId):
         addUserToDb(user.getUserByComment(comment))
     addSongToDb(songId)
     if songId in songIdSet:
-        songIdSet.pop(songId)
+        songIdSet.remove(songId)
     return
 #  不成功返回-1
 def addByUser(userId):
     if dbContainUser(userId):
         return
     result = checkLastEventAndForwardThenComment(userId)
-    if userId in userIdSet:
-        userIdSet.pop(userId)
+
+    #if userId in userIdSet:
+    #    userIdSet.remove(userId)
     user=User()
     user.id= userId
 
     addUserToDb(user)
     return result
 
-userIdSet.update(network.getUserIdByName())
+
 
 # while True:
 #     if len(userIdSet) == 0:
@@ -133,16 +147,26 @@ def addSongIdByList():
     songList= List();
     songList.id=listId;
     songList.save()
-while True:
-    if len(songIdSet) == 0:
-        addSongIdByList()
-    songId=songIdSet.pop()
-    addBySong(songId)
 
+
+# 要想使用这个东西 先在控制台 执行python manage.py shell 然后在新的窗口执行  import mm.my.main
+# while True:
+#     if len(songIdSet) == 0:
+#         addSongIdByList()
+#     songId=songIdSet.pop()
+#     addBySong(songId)
+
+allFollower= network.getAllFollower(1482537933)
+for follwer in allFollower:
+    findFollowerUserIdSet.append(follwer.id)
+while True:
+    getMoreUserId()
+    while len(userIdSet)!=0:
+        addByUser(userIdSet.pop())
+        time.sleep(10)
 
 # result=network.getFollower(341731701)
 # userIdList=[]
 # for user in result:
 #     userIdList.append(user.id)
 # print(userIdList)
-
